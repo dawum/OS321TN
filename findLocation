@@ -1,6 +1,6 @@
 #!/bin/bash
 # findLocation
-# Travis Carpenter and Nam 
+# Travis Carpenter and Nam Dawum
 # A short bash script that takes a 6-digit prefix in argument
 # and displays the cooresponding location in the file nanpa
 
