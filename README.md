@@ -6,6 +6,7 @@ git branch -D branchname // delete branch
 git branch // tells what branches there are 
 git checkout filename // to discard changes made on file
 git commit file1 file2 or git commit -a // multiple file and commiting all
+git commit -m message 
 
 git log --branches --not --remotes // tells what commits not pushed upstream.
 
