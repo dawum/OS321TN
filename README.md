@@ -19,6 +19,4 @@ git log --branches --not --remotes // tells what commits not pushed upstream.
 
 git push origin branchname // pushes commits
 
-
-
 git config --global --edit // edit config file
