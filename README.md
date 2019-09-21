@@ -28,3 +28,5 @@ git checkout master
 git pull origin master
 
 git branch -d branchname or git branch -D branchname // to force delete branch
+
+git add -A // add all files in local repo to be tracked
