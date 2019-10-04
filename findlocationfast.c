@@ -41,10 +41,19 @@ long arrayToLong(char *array) {
 	return result;
 }
 
+// Helper function to check if value is a digit
+int isDigit(int c)
+{
+        if (c >= '0' && c <= '9')
+                return c;
+        else
+                return 0;
+}
+ 
 // Helper function that checks if the inputted prefix is properly formatted
 int checkPrefix(int argc, char *argv[]){
 	for (int i=0; i<=5; i++){
-		if (isdigit(argv[2][i]) == 0){
+		if (isDigit(argv[2][i]) == 0){
 			write(fileno(stderr), "Improperly formatted input prefix\n", 34);
 			return -1;
 		}
