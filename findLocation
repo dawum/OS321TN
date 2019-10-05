@@ -1,0 +1,19 @@
+#!/bin/bash
+# findLocation
+# Travis Carpenter and Nam Dawum
+# A short bash script that takes a 6-digit prefix in argument
+# and displays the cooresponding location in the file nanpa
+
+
+inputVar=$1
+output=
+
+if [[ $inputVar =~ ^[0-9]{6} ]]; then
+	output=$(grep $inputVar nanpa)
+	echo ${output:6}
+else
+	echo "Please enter a six digit number as a parameter"
+	exit 1
+fi
+
+

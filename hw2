@@ -1,0 +1,50 @@
+puts takes string in form of char pointer (char array) write it to fd indicated by fd return no of char written
+
+Head 
+  read and repeat it with write and you repeat it check if you encounter nl 
+  no need to allocate memory, read to buffer, check last nl and done. 
+
+Tail 
+  Read and find where the first line stops (but first line size is not limited and needs to be put into buffer)
+  malloc calloc realloc lines, push lines onto stack and when done pop first out, make own data structure 
+  dont free memory which you allocated 
+  Use Valgrind to check memory leak
+
+file opened needs to be closed as soon as possible (use strace to check, count opens and closes)
+
+display error on stderror instead of stdout
+
+File Searching
+  In order to use binary search you need where file ends. use lseek. 
+  be careful on infinite loop 
+  On some hardware seeking for the end already takes O(n) include it in the write up and simulate the case 
+  use strace to count how many reads there are if there are too many its rather linear than binary
+  if file has no end or dont know where the end is (ie. tcp ip, terminal type) you either ignore the case or 
+    linear search until you find it. 
+  Simulate this by feeding the program a file that isn't seekable and see what error it generates.(find a way
+    to getting access non seekable file)
+
+Mapping files to memory
+  open file with mmap and do binary search in memory 
+  every file opened with mmap needs unmap
+  not all files are mmaped, show appropriate error
+  if possible find file that isn't mmapable and include it in the write-up.
+
+Pipe observer (Hardest)
+  Usually, when certain file goes through a pipe, what is going through the pipe cannot be observed. 
+  tee file or tee allfile observe and show what goes through the pipe. 
+  ./pipeobserver allfiles [ ls ] [ wc ]
+  1. creates file and open it for writing 
+  2. produces a child process to run ls 
+  3. that produces a first child process to run tee
+  4. and produces a second child process to run wc
+  ????? understand the pipe logic!! first!!
+  after understanding, create each fork one by one after checking that one works. 
+  its possible to implement pipe observer without malloc and is recommended
+  You can simply allocate right amount of pointer of arguments and without copying them around give its pointer 
+    to other childs to share 
+  try to close ends of pipes you dont need. 
+  
+  
+
+  
