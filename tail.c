@@ -16,12 +16,13 @@ struct iamqueue
     size_t remaining; 
 }; typedef struct iamqueue qu;
      
-void qu_init(qu *q, int lineNo); 
+void qu_init(qu *q, size_t lm); 
 void qu_clear(qu *q); 
 static void qu_alloc_data(qu *q);
 void qu_put(qu *q, char in);
-//size_t qu_queue_out(char out[], size_t n, qu *q);
-
+void qu_push(qu *q);
+void qu_clearData(qu *q);
+static void qu_set_queue(qu *q);
 
 int countChars(const char *s);
 int my_file_puts(int fd,const char *s);
@@ -35,7 +36,6 @@ int main(int argc, char **argv)
 {
     qu q;
     qu *qp = &q;
-    lineNo = 0;
     if (argc == 1) 
     { 
         lineMax = 10;
@@ -97,19 +97,17 @@ int main(int argc, char **argv)
         exit(1);
 
     }
+
     qu_init(&q,lineMax);
+    qu_set_queue(&q);
     while (read(fd,&buf,1)==1)
     {        
         qu_put(&q,buf[0]);
-/*        if (buf[0] == '\n')
-        {
-            lineNo++;
-        }
- */       
     }    
-    for (int i = 0; i < qp->lastIndex+1; i++)
+
+    for (int i = 0; i < lineMax; i++)
     {
-        printf("%c",qp->data[i]);
+        write(1,qp->queue[i],sizeof(qp->queue[i]));
     }
     close(fd);
     qu_clear(&q);
@@ -143,16 +141,11 @@ int atooi(const char *s)
     return n;
 }
 
-void qu_init(qu *q, int lineNo)
+void qu_init(qu *q, size_t lm)
 {
     q->data = NULL;
-    q->lineNo = lineNo;
-    q->queue = (char **) calloc(q->lineNo,sizeof(char*));
-    if (q->queue == NULL)
-        {
-            write(fileno(stderr),strerror(errno),countChars(strerror(errno)));
-            exit(1);
-        }
+    q->lineMax = lm;
+    q->lineNo = 0;
     q->size = 0;
     q->lastIndex = 0;
     q->remaining = 0;
@@ -163,6 +156,13 @@ void qu_clear(qu *q)
     {
         free(q->data);
         q->data = NULL;
+    }
+    for (int i = 0; i < q->lineMax; i++)
+    {
+        if (q->queue[i] != NULL)
+        {
+            free(q->queue[i]);
+        }
     }
     if (q->queue != NULL) 
     {
@@ -177,20 +177,33 @@ void qu_clear(qu *q)
 }
 void qu_clearData(qu *q)
 {
+    q->data = NULL;
+    q->lastIndex = 0;
+    q->size = 0;
+    q->remaining = 0;
+}
+static void qu_set_queue(qu *q)
+{
+    q->queue = (char **) calloc(q->lineMax,sizeof(char**));
+     if (q->queue == NULL)
+        {
+            write(fileno(stderr),strerror(errno),countChars(strerror(errno)));
+            exit(1);
+        }
 }
 static void qu_alloc_data(qu *q)
 {
     void *temp;
     if (q->data == NULL)
     {
-        q->data = (char *) calloc(2,sizeof(char));
+        q->data = (char *) malloc(30 * sizeof(char));
         if (q->data == NULL)
         {
             write(fileno(stderr),strerror(errno),countChars(strerror(errno)));
             exit(1);
         }
-        q->size = 2;
-        q->remaining = 2;
+        q->size = 30;
+        q->remaining = 30;
     }
     else
     {
@@ -207,7 +220,6 @@ static void qu_alloc_data(qu *q)
             q->size = q->size * 2;
         }
     }
-    printf("SIZE:%ld",q->size);
 
 }
 void qu_put(qu *q, char in)
@@ -225,9 +237,31 @@ void qu_put(qu *q, char in)
         q->remaining--;
         q->lastIndex++;
     }
+    if (in == '\n')
+    {
+        qu_push(q);
+        qu_clearData(q);
+    }
+    
 }
-
-size_t qu_queue_out(size_t n, qu *q)
+void qu_push(qu *q)
 {
+    if (q->lineNo < q->lineMax)
+    {
+        q->queue[q->lineNo] = q->data;
+        q->lineNo++;  
+    }
+    else
+    {
+        void * temp = q->queue[0];
+        for (int i = 0; i < q->lineMax-1; i++)
+        {
+            q->queue[i] = q->queue[i+1];
 
+        }
+        q->queue[q->lineMax-1] = q->data;
+        free(temp);
+    }
 }
+
+
