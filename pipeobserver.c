@@ -1,5 +1,5 @@
 // pipeobserver.c
-// Travis Carpenter and Nam Dawum
+// Travis Carpenter and Dawum Nam
 //
 // A program that emulates the UNIX pipe command
 

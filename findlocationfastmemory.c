@@ -1,9 +1,10 @@
 // findlocationfastmemory.c
-// Travis Carpenter and Nam Dawum
+// Travis Carpenter and Dawum Nam
 //
 // A basic program that accepts a file and prefix as arguments and
 // attempts to find said prefix in the file, outputting its cooresponding
-// address when found and nothing if the prefix doesn't exist in file.
+// address when found and nothing if the prefix doesn't exist in file. This 
+// implementation uses the mmap() function instead of the read() function.
 
 #include <stdio.h>
 #include <sys/mman.h>
@@ -185,10 +186,14 @@ int main(int argc, char *argv[])
 		write(fileno(stderr), "Failed to open file\n", 29);
 		exit(-1);
 	}
-
-	// Find the EOF
+	
+	// Find the EOF and check if file is seekable
 	long end = lseek(file, 0, SEEK_END);
-
+	
+	if (end == -1){
+		write(fileno(stderr), "File is not seekable\n", 21);
+		exit(-1);
+	}
 	// Check inputted prefix for proper format
 	int val = checkPrefix(argc, argv);
 	if (val < 0){
