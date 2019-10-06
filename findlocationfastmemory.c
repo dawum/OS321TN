@@ -186,10 +186,14 @@ int main(int argc, char *argv[])
 		write(fileno(stderr), "Failed to open file\n", 29);
 		exit(-1);
 	}
-
-	// Find the EOF
+	
+	// Find the EOF and check if file is seekable
 	long end = lseek(file, 0, SEEK_END);
-
+	
+	if (end == -1){
+		write(fileno(stderr), "File is not seekable\n", 21);
+		exit(-1);
+	}
 	// Check inputted prefix for proper format
 	int val = checkPrefix(argc, argv);
 	if (val < 0){
