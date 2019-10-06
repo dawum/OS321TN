@@ -10,7 +10,49 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+// Helper function to number of chars in string
+int countChars(const char *s);
 
+// Function to determine both commands to execute along with an array of their cooresponding arguments
+void parseArgs(int argc, char *argv[], char* exec1, char* exec2, char* args1[], char* args2[]);
+
+int main(int argc, char *argv[])
+{
+
+	// initialize executables 1 & 2 along with an array of args for each
+	char* executable1 = "";
+	char* executable2 = "";
+	char* args1[8192] = {};
+	char* args2[8192] = {};
+
+	// Open and confirm that argv[1] is a file that can be opened and append if file exists. If not create with read write and execute permission. 
+	int file = open(argv[1], O_WRONLY | O_APPEND | O_CREAT, 00700);
+
+	if (file < 0){
+		write(fileno(stderr), "Failed to open file\n", 29);
+		exit(-1);
+	}
+
+	// Parse all argv[] components into 2 commands to execute and 2 arrays of args for each
+	parseArgs(argc, argv, executable1, executable2, args1, args2);
+
+
+printf("executable1 %p\n",executable1);
+
+	close(file);
+	//exit(-1);
+}
+
+// Helper function to number of chars in string
+int countChars(const char *s)
+{
+    int i = 0;
+    while (s != NULL && s[i] != '\0')
+    {
+        i++;
+    } 
+    return i;
+}
 // Function to determine both commands to execute along with an array of their cooresponding arguments
 void parseArgs(int argc, char *argv[], char* exec1, char* exec2, char* args1[], char* args2[])
 {
@@ -27,7 +69,9 @@ void parseArgs(int argc, char *argv[], char* exec1, char* exec2, char* args1[], 
 	}
 	// If argv[2] is "[", set exec1 = argv[3]
 	else{
+	
 		exec1 = argv[3];
+		printf("exec1 %p\n",exec1);
 	}
 
 	// Form args1[] //
@@ -142,32 +186,3 @@ void parseArgs(int argc, char *argv[], char* exec1, char* exec2, char* args1[], 
 //		printf("args2[%d] = %s\n",g, args2[g]);
 
 }
-
-
-
-int main(int argc, char *argv[])
-{
-
-	// initialize executables 1 & 2 along with an array of args for each
-	char* executable1 = "";
-	char* executable2 = "";
-	char* args1[8192] = {};
-	char* args2[8192] = {};
-
-	// Open and confirm that argv[1] is a file that can be opened for writing
-	int file = open(argv[1], O_WRONLY);
-
-	if (file < 0){
-		write(fileno(stderr), "Failed to open file\n", 29);
-		exit(-1);
-	}
-
-
-
-	// Parse all argv[] components into 2 commands to execute and 2 arrays of args for each
-	parseArgs(argc, argv, executable1, executable2, args1, args2);
-
-	close(file);
-	exit(-1);
-}
-
