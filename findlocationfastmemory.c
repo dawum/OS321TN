@@ -1,9 +1,10 @@
 // findlocationfastmemory.c
-// Travis Carpenter and Nam Dawum
+// Travis Carpenter and Dawum Nam
 //
 // A basic program that accepts a file and prefix as arguments and
 // attempts to find said prefix in the file, outputting its cooresponding
-// address when found and nothing if the prefix doesn't exist in file.
+// address when found and nothing if the prefix doesn't exist in file. This 
+// implementation uses the mmap() function instead of the read() function.
 
 #include <stdio.h>
 #include <sys/mman.h>
