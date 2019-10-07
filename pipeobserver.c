@@ -159,7 +159,11 @@ int main(int argc, char *argv[])
 				else
 				{
 					dup2(pipe2[0],STDIN_FILENO);
-					execvp(exec2[0],exec2);
+					if (execvp(exec2[0],exec2) == -1)
+					{
+						write(fileno(stderr),"Second Execution Failed",30);
+						exit(-1);
+					}
 					close(pipe2[0]);
 					exit(EXIT_SUCCESS);
 				}
@@ -196,7 +200,11 @@ int main(int argc, char *argv[])
 	{
 		close(pipe1[0]); // close 1/3
 		dup2(pipe1[1],STDOUT_FILENO); //redirect stdout of childA to write end of pipe1
-		execvp(exec1[0],exec1); // run executable 1
+		if (execvp(exec1[0],exec1) == -1)
+		{
+			write(fileno(stderr),"First Execution Failed",30);
+			exit(-1);
+		}
 		close(pipe1[1]); // close 2/3 
 		close(file); // close 3/3
 		exit(EXIT_SUCCESS); // write successful!
