@@ -1,3 +1,5 @@
+//Dawum Nam & Travis Carpenter
+
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -14,6 +16,8 @@ int lineMax, lineNo, fd;
 int main(int argc, char **argv)
 {
     lineNo = 0;
+
+    //Parse Args
     if (argc == 1)
     {
         lineMax = 10;
@@ -75,6 +79,8 @@ int main(int argc, char **argv)
         return 1;
 
     }
+
+    //Main 
     while (read(fd,&buf,1)==1 && lineNo < lineMax)
     {        
         my_file_puts(1,buf);
@@ -89,6 +95,7 @@ int main(int argc, char **argv)
     return 0;
 }
 
+// Count characters
 int countChars(const char *s)
 {
     int i = 0;
@@ -98,12 +105,16 @@ int countChars(const char *s)
     } 
     return i;
 }
+
+// put string into fd
 int my_file_puts(int fd, const char *s)
 {
     int inputNumber = countChars(s);
     write(fd, s, inputNumber);
     return inputNumber;
 }
+
+// string to int
 int atooi(const char *s)
 {
     int offset = 0 , n = 0;

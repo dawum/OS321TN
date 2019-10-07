@@ -1,7 +1,10 @@
 // pipeobserver.c
 // Travis Carpenter and Dawum Nam
 //
-// A program that emulates the UNIX pipe command
+// A program that emulates the UNIX tee command
+// Compile with gcc -O3 -Wall -o pipeobserver pipeobserver.c
+// run with ./pipeobserver [ Command ] [ Command ] 
+// need to hit enter to end program after it ran
 
 #include <stdio.h>
 #include <sys/mman.h>

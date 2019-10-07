@@ -1,3 +1,5 @@
+// Dawum Nam & Travis Carpenter
+
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -36,6 +38,8 @@ int main(int argc, char **argv)
 {
     qu q;
     qu *qp = &q;
+
+    // Parsing Arguments
     if (argc == 1) 
     { 
         lineMax = 10;
@@ -98,6 +102,8 @@ int main(int argc, char **argv)
 
     }
 
+
+    // Initialization and reading from file. 
     qu_init(&q,lineMax);
     qu_set_queue(&q);
     while (read(fd,&buf,1)==1)
@@ -113,6 +119,7 @@ int main(int argc, char **argv)
     return 0;
 }
 
+// Count Number of characters 
 int countChars(const char *s)
 {
     int i = 0;
@@ -122,12 +129,16 @@ int countChars(const char *s)
     } 
     return i;
 }
+
+// Write string to fd 
 int my_file_puts(int fd, const char *s)
 {
     int inputNumber = countChars(s);
     write(fd, s, inputNumber);
     return inputNumber;
 }
+
+// String to Int
 int atooi(const char *s)
 {
     int offset = 0 , n = 0;
@@ -140,6 +151,7 @@ int atooi(const char *s)
     return n;
 }
 
+// Initiates struct
 void qu_init(qu *q, size_t lm)
 {
     q->data = NULL;
@@ -149,6 +161,8 @@ void qu_init(qu *q, size_t lm)
     q->lastIndex = 0;
     q->remaining = 0;
 }
+
+// Clears Whole struct
 void qu_clear(qu *q)
 {
     if (q->data != NULL) 
@@ -174,6 +188,8 @@ void qu_clear(qu *q)
     q->size = 0;
     q->remaining = 0;
 }
+
+// Clears Data
 void qu_clearData(qu *q)
 {
     q->data = NULL;
@@ -181,6 +197,8 @@ void qu_clearData(qu *q)
     q->size = 0;
     q->remaining = 0;
 }
+
+// Initialize Queue
 static void qu_set_queue(qu *q)
 {
     q->queue = (char **) calloc(q->lineMax,sizeof(char**));
@@ -190,6 +208,8 @@ static void qu_set_queue(qu *q)
             exit(1);
         }
 }
+
+// Allocates and reallocates char array
 static void qu_alloc_data(qu *q)
 {
     void *temp;
@@ -221,6 +241,8 @@ static void qu_alloc_data(qu *q)
     }
 
 }
+
+// Puts character into char array
 void qu_put(qu *q, char in)
 {
     qu_alloc_data(q);
@@ -234,6 +256,8 @@ void qu_put(qu *q, char in)
     }
     
 }
+
+// Pushes Lines Onto Queue 
 void qu_push(qu *q)
 {
     if (q->lineNo < q->lineMax)
