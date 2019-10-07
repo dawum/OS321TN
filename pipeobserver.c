@@ -17,8 +17,8 @@
 	static char* executable2 = NULL;
 	static char* args1[8192] = {};
 	static char* args2[8192] = {};
-	static char* exec1[] = {"ls","-a",NULL};
-	static char* exec2[]  = {"wc", "-l", NULL}; 
+	static char* exec1[] = {"cat","pipeobserver.c",NULL};
+	static char* exec2[]  = {"wc","-l", NULL}; 
 
 // Helper function to number of chars in string
 int countChars(const char *s);
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 		{
 			//char buf[1];
 			dup2(pipe1[0],STDIN_FILENO); //redirect stdoin of childB to read end of pipe1
-
+			
 			int pipe2[2];
 
 			// create second pipe
@@ -107,7 +107,6 @@ int main(int argc, char *argv[])
 			{
 				close(file);
 				close(pipe2[1]);
-				wait(NULL);
 
 				pid_t GchildB = fork();
 
@@ -122,6 +121,7 @@ int main(int argc, char *argv[])
 				else if (GchildB > 0)
 				{
 					close(pipe2[0]);
+					close(pipe1[0]);
 					wait(NULL);
 					exit(EXIT_SUCCESS);
 				}
@@ -130,11 +130,15 @@ int main(int argc, char *argv[])
 				else
 				{
 					dup2(pipe2[0],STDIN_FILENO);
-					execvp(exec2[0],exec2);
+					if (execvp(exec2[0],exec2))
+					{
+						exit(EXIT_FAILURE);
+					}
+
+					close(pipe1[0]);
 					close(pipe2[0]);
 					exit(EXIT_SUCCESS);
 				}
-				
 			}
 			// GChildA
 			else
@@ -142,18 +146,18 @@ int main(int argc, char *argv[])
 				close(pipe2[0]); 
 				dup2(pipe2[1],STDOUT_FILENO);
 				char buf[1];
-				while(read(pipe1[0],&buf,1) == 1)
+
+				while(read(STDIN_FILENO,&buf,1) > 0)
 				{
 					write(file,buf,1);
 					write(pipe2[1],buf,1);
 				}
 				close(file);
 				close(pipe1[0]);
-				close(pipe2[0]);
 				close(pipe2[1]);
+				
 				exit(EXIT_SUCCESS);
 			}
-			
 			/*
 			while (read(pipe1[0],&buf,1) == 1)
 			{
