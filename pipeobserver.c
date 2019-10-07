@@ -11,14 +11,19 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <stdbool.h>
+#include <string.h>
 
 	// initialize executables 1 & 2 along with an array of args for each
-	static char* executable1 = NULL;
-	static char* executable2 = NULL;
-	static char* args1[8192] = {};
-	static char* args2[8192] = {};
-	static char* exec1[] = {"cat","pipeobserver.c",NULL};
-	static char* exec2[]  = {"wc","-l", NULL}; 
+	char* executable1 = "";
+	char* executable2 = "";
+	char* args1[8192] = {};
+	char* args2[8192] = {};
+//	static char* exec1[] = {"ls","-a",NULL};
+//	static char* exec2[]  = {"wc", "-l", NULL}; 
+	char* exec1[8193] = {};
+	char* exec2[8193] = {};
+
 
 // Helper function to number of chars in string
 int countChars(const char *s);
@@ -41,13 +46,34 @@ int main(int argc, char *argv[])
 	// Parse all argv[] components into 2 commands to execute and 2 arrays of args for each
 	parseArgs(argc, argv);
 
+
+	// Form the exectuables with the exec and args parsed with parseArgs
+	int i = 1;
+	exec1[0] = executable1;
+	while(true){
+		exec1[i] = args1[i-1];
+		if (args1[i] == 0)
+			break;
+		i++;
+	}
+
+	i = 1;
+	exec2[0] = executable2;
+	while(true){
+		exec2[i] = args2[i-1];
+		if (args2[i] == 0)
+			break;
+		i++;
+	}
+
+
 	// create first pipe
 	if (pipe(pipe1) == -1)
 	{
 		write(fileno(stderr),"Pipe Creation failed",20);
 		exit(-1);
 	}
-	
+
 	// Create child A
 	pid_t childA = fork();
 
@@ -59,7 +85,7 @@ int main(int argc, char *argv[])
 	}
 	// Parent of ChildA = process
 	else if (childA > 0)
-	{	
+	{
 		close(pipe1[1]);  // write of pipe 1 is closed for good. 
 
 		pid_t childB = fork();
@@ -83,7 +109,7 @@ int main(int argc, char *argv[])
 		{
 			//char buf[1];
 			dup2(pipe1[0],STDIN_FILENO); //redirect stdoin of childB to read end of pipe1
-			
+
 			int pipe2[2];
 
 			// create second pipe
@@ -107,6 +133,7 @@ int main(int argc, char *argv[])
 			{
 				close(file);
 				close(pipe2[1]);
+				wait(NULL);
 
 				pid_t GchildB = fork();
 
@@ -121,7 +148,6 @@ int main(int argc, char *argv[])
 				else if (GchildB > 0)
 				{
 					close(pipe2[0]);
-					close(pipe1[0]);
 					wait(NULL);
 					exit(EXIT_SUCCESS);
 				}
@@ -130,15 +156,11 @@ int main(int argc, char *argv[])
 				else
 				{
 					dup2(pipe2[0],STDIN_FILENO);
-					if (execvp(exec2[0],exec2))
-					{
-						exit(EXIT_FAILURE);
-					}
-
-					close(pipe1[0]);
+					execvp(exec2[0],exec2);
 					close(pipe2[0]);
 					exit(EXIT_SUCCESS);
 				}
+				
 			}
 			// GChildA
 			else
@@ -146,18 +168,18 @@ int main(int argc, char *argv[])
 				close(pipe2[0]); 
 				dup2(pipe2[1],STDOUT_FILENO);
 				char buf[1];
-
-				while(read(STDIN_FILENO,&buf,1) > 0)
+				while(read(pipe1[0],&buf,1) == 1)
 				{
 					write(file,buf,1);
 					write(pipe2[1],buf,1);
 				}
 				close(file);
 				close(pipe1[0]);
+				close(pipe2[0]);
 				close(pipe2[1]);
-				
 				exit(EXIT_SUCCESS);
 			}
+			
 			/*
 			while (read(pipe1[0],&buf,1) == 1)
 			{
@@ -202,10 +224,10 @@ static void parseArgs(int argc, char *argv[])
 		exit(-1);
 	}
 	// If argv[2] is "[", set exec1 = argv[3]
-	else{	
+	else{
 
 		executable1 = argv[3];
-		
+
 	}
 
 	// Form args1[] //
