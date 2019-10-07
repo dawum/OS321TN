@@ -195,28 +195,28 @@ static void qu_alloc_data(qu *q)
     void *temp;
     if (q->data == NULL)
     {
-        q->data = (char *) malloc(1 * sizeof(char));
+        q->data = (char *) malloc(20 * sizeof(char));
         if (q->data == NULL)
         {
             write(fileno(stderr),strerror(errno),countChars(strerror(errno)));
             exit(1);
         }
-        q->size = 1;
-        q->remaining = 1;
+        q->size = 20;
+        q->remaining = 20;
     }
     else
     {
         if (q->remaining == 0)
         {
-            temp = realloc(q->data, q->size + (1 * sizeof(char)));
+            temp = realloc(q->data, (q->size * 2) * sizeof(char));
             if (temp == NULL)
             {
                 write(fileno(stderr),strerror(errno),countChars(strerror(errno)));
                 exit(1);
             }
             q->data = (char *) temp;
-            q->remaining = 1;
-            q->size = q->size + 1;
+            q->remaining = (q->size * 2) - q->size;
+            q->size = q->size * 2;
         }
     }
 
