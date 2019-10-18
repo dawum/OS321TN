@@ -1,0 +1,63 @@
+We don't know how freed length is going to be.
+
+we don't unmap for each free otherwise the whole process will be slow.
+
+we need to know what length of freed memory we have so next time we use it
+we know whether the data fits or not. 
+
+we cant force user to give us the length
+
+we use header that is typedef
+
+mmap start(original location of pointer), mmap size
+
+subtract the header size from pointer to acceess header
+
+put every returned block to freed linked list. 
+
+when malloc, go through linked list and try to find free memory that fits the size
+
+order linked list by pointer address
+
+two blocks say have different size but one starts precisely where the other ends, they aren't really two blocks of free memory but one big memory. 
+
+if there's one byte between two blocks then they cannot be combined. 
+
+you cannot combine them if two blocks come out of different mmap.
+
+if they cannot be combined you need to unmmap. 
+
+when you mmap memory,  and put it in to free linked list, you must prevent it from global and munmap logic to work it using boolean because otherwise it will immediately be unmapped. 
+
+alloc family does not have init. it does not know whether it is first time or last time its run. 
+
+you need to check it it has been initialized or not. 
+
+when you decide to give free memory to user from linked list, don't forget to add offset of the header size. 
+
+when part of freed memory in the free linked list is used, create new header for left part of free memory. 
+
+per mmap you slice them into smaller pieces and give it to user, combine them as user does not need it by freeing it, or give user new mmap depending on the availability of freed memories in the linked list. 
+
+if you cast the pointer to void * and add 5 to it it will add 5 bytes to it because size of void * is of 1 byte. But if you add 5 to the pointer that has size of header, it is not going to add 5 bytes but 5 * headersize. it's up to you how to do pointer arithmetic. 
+
+STEPS 
+1. typedef your header. 
+2. implement free (subtract header size, insert block into linked list order by addresses , coalsce block around newly inserted block, possibly unmap block if it fills mmap block completely) 
+3. malloc ( get block from linked list is better, if unsuccessful, mmap block in, try over, add header size to pointer) 
+4. calloc ( just set it to zeros!!!)
+5. realloc 
+                  1. if first pointer is null it behaves like malloc
+                  2. if new size is 0 it behaves like free
+                  3.  Or then with the old pointer by subtracting of header size we can access the hader and find old size. 
+                  4. old size is larger than new size, means that they are giving us back the memory, make a block with header out of returned memory and insert into linked list.
+                  5. special case, if they are giving us the size that header does not fit in, do nothing. it's fine as it is. 
+                  6. if old size is smaller than new size, 
+                                        1. if program wants to change size of x to x then do nothing.
+                                        2. else, BASIC = you malloc a new size, with your own malloc, you copy the contents of the old block without the header, into the new block with the old size. free the old pointer, and return a new block. its not super efficient because if user wants 1 more byte from 5 gigs, you need to copy 5 gigs to give 1 byte. But its basic implementation 
+                                        3. Optimized = before the copy, check in list of free memory, if existing block can be extended. meaning check inside linked list to see if there's block that has starts at the address where old one ends and has enough remaining size to fit the request. 
+
+TEST with your own code that does malloc calloc realloc and free in certain order. 
+
+How and when to do unmap of free memory needs to be considered. 
+maybe by metadata 
