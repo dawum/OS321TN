@@ -52,9 +52,18 @@
     
 */
 
+/* Macros */
+
+#define GET_LENGTH(p) ((ll *)(p))->length
+#define GET_MMPSTART(p) ((ll *)(p))->mmap_start
+#define GET_MMPSIZE(p) ((ll *)(p))->mmap_size
+#define GET_NEXT(p) ((ll *)(p))->next
+#define GET_NEXT(p) ((ll *)(p))->prev
+
+
 #include <stddef.h>
 #include <sys/mman.h>
-
+#include <stdlib.h>
 /* Predefined helper functions */
 
 static void *__memset(void *s, int c, size_t n) {
@@ -155,15 +164,17 @@ static int __try_size_t_multiply(size_t *c, size_t a, size_t b) {
 */
 
 // struct for a LL to hold freed memory
-typedef struct {
+struct linkedList {
 	size_t length;
 	void * mmap_start;
-	size_t mmap_size;   //not certain about why we need or what it is
-	void * next;	
-}header_t;
+	size_t mmap_size; 
+	void * next;
+  void * prev;	
+}; typedef struct linkedList ll;
 
+#define SL sizeof(ll)
 // initialize LL to hold free memory
-header_t * free_memory = NULL;
+//ll * head = NULL;
 
 
 /* End of your helper functions */
@@ -171,29 +182,103 @@ header_t * free_memory = NULL;
 /* Start of the actual malloc/calloc/realloc/free functions */
 
 void __free_impl(void *);
-
+void *__malloc_impl(size_t size);
 // We need to return a ptr to the region starting where the head ends
 void *__malloc_impl(size_t size) {
-	if (size == (size_t) 0):
-		return NULL;
-	else:
 		// check if theres a space available in the free_memory LL and use from there first if possible
 		// if not, create a new space with mmap.
     
-    // not certain if mmap_start is what we want here and size + sizeof(header_t) isn't exactly how it should look 
+    // not certain if mmap_start is what we want here and size + sizeof(ll) isn't exactly how it should look 
     // but its general indea. Rest of mmap call im 99% cetain is correct.
-		mmap_start = mmap(NULL, size + sizeof(header_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-		
+    if (size < 1)
+    {
+      return NULL;
+    }
+    else if (size >9223372036854775807)
+    {
+      return NULL;
+    }
+    else
+    {
+      void * temp = mmap(NULL, size + sizeof(ll), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS , -1, 0);
+      if (temp == NULL) return NULL;
+      GET_MMPSIZE(temp) = size+sizeof(ll);
+      temp += sizeof(ll);
+  return temp;
+    }
 }
 
 void *__calloc_impl(size_t nmemb, size_t size) {
   /* STUB */
-  return NULL;  
+  size_t aa = 0;
+  size_t * a = &aa;
+   __try_size_t_multiply(a,size,nmemb);
+
+  if (nmemb < 1 || size < 1 || *a >9223372036854775807 )
+  {
+  return NULL; 
+  }
+
+  else{
+   void * temp = __malloc_impl(*a);
+   __memset(temp,0,*a);
+   temp += SL;
+  
+
+  return temp;  
+  }
 }
 
 void *__realloc_impl(void *ptr, size_t size) {
   /* STUB */
-  return NULL;  
+  if (ptr)
+  {
+  ptr -= sizeof(ll);
+  if (size == 0)
+  {
+    ptr += sizeof(ll);
+    __free_impl(ptr);
+    return NULL;
+  }
+  else if (size < 0)
+  {
+    ptr += SL;
+    __free_impl(ptr);
+    return NULL;
+  }
+  else if (size >9223372036854775807)
+  {
+    ptr += SL;
+    __free_impl(ptr);
+    return NULL;
+  }
+  else if (size == GET_MMPSIZE(ptr)-sizeof(ll))
+  {
+    ptr+=SL;
+    return ptr;
+  }
+  else if (size < GET_MMPSIZE(ptr)-sizeof(ll)) // realloc to smaller size
+  {
+      void * temp = __malloc_impl(size);
+      ptr += SL;
+      __memcpy(temp,ptr,size);
+      __free_impl(ptr);
+      return temp;
+  }
+  else // realloc to larger size
+  {
+    void * temp = __malloc_impl(size);
+    ptr += sizeof(ll);
+    void * tempp = ptr - SL;
+    __memcpy(temp,ptr,GET_MMPSIZE(tempp)-SL);
+    __free_impl(ptr);
+    return temp;
+  }
+  }
+  else 
+  {
+  return NULL;
+  }
 }
 
 // whenever free is called, munmap the *ptr using its ptr->length. Then, add it
@@ -202,7 +287,34 @@ void *__realloc_impl(void *ptr, size_t size) {
 // free_memory LL. If not, we create a new entry to the free_memory LL and add it at the end.
 // 
 void __free_impl(void *ptr) {
-  /* STUB */
+
+/* 1. Push into a linked list.
+   2. sort linked list.
+   3. merge blocks.
+   4. if all blocks are returned free.
+
+*/
+if (ptr)
+{
+ptr -= sizeof(ll);
+munmap(ptr,GET_MMPSIZE(ptr));
 }
+}
+
+/* Push newly mmaped block or freed block to linked list. */
+void __push(void *ptr){
+}
+/* Merge blocks into bigger chunks. */
+void __searchAndMerge(){
+
+}
+
+/* If a block is complete, unmap. */
+void __unmap(void *ptr){
+}
+
+
+
+
 
 
