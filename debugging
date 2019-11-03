@@ -1,0 +1,58 @@
+https://cs.baylor.edu/~donahoo/tools/gdb/tutorial.html --good site to look at
+setup terminal with usual compilation and exports, excluding the LD_PRELOAD (LD_PRELOAD gets set inside GDB instead):
+
+
+    gcc -fPIC -Wall -g -O0 -c memory.c 
+    gcc -fPIC -Wall -g -O0 -c implementation.c
+    gcc -fPIC -shared -o memory.so memory.o implementation.o -lpthread
+
+    To try the code out:
+
+    export LD_LIBRARY_PATH=`pwd`:"$LD_LIBRARY_PATH"
+    export MEMORY_DEBUG=yes
+    ls
+
+
+
+run program to test with gdb:
+>>gdb ls
+
+once gdb, set environment with LD_PRELOAD:
+there's 2 options, 1st one is the standard one he recommended, but I had trouble with. It works with 1st option now it just a bunch of mallocs and frees are called before 
+
+LD_PRELOAD=./my.so ./my_program
+
+second option that avoids calling malloc,s and frees b4 program actually exectutes is:
+set exec-wrapper env 'LD_PRELOAD=./memory.so'
+
+once this is set in GDB you can run program:
+
+>> r
+
+set a breakpoint to halt execution:
+
+>>b implementation.c:324   <-line # to halt on
+
+continue running program until you hit breakpoint again or another breakpoint:
+
+>>c
+
+step into a function:
+
+>>s
+
+step over a function:
+
+>>n
+
+view all breakpoints set:
+
+>>info b
+
+delete a breakpoint
+
+>> d 1 <- # of bp to be deleted
+
+set temporary bp to be hit only once
+
+>>tb....
