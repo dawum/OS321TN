@@ -56,3 +56,14 @@ delete a breakpoint
 set temporary bp to be hit only once
 
 >>tb....
+
+*****To look at a ptr and its contents you print it out:*****
+ >>p ptr (gives ptr address)
+ 
+ >>p *ptr <-dereferences a ptr to give it variables (doesn't work on void ptrs)
+ 
+ >>p *(ll *)ptr <- casts a ptr then prints its contents
+ 
+ >>p *((ll *)ptr->next)  <- prints contents of next ptr
+ 
+ etc.
