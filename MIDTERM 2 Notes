@@ -1,0 +1,64 @@
+OS MIDTERM:
+
+PT1. Memory Management:
+
+-to which physical address does this virtual address translate to 
+- can i have page misses, page faults
+-how many of them can i have on a certian type of instr
+-if i have instr's that take lots of memory addresses and read in lots of places in memory, how many can i have
+- is there a relationship between # of page faults and alignment.
+
+PT2. File Systmes:
+
+- How i-nodes are used in linux:
+- when you open up a file in linux you get a FD back.
+- that FD referes to a certin i node where that file is stored
+- so the association between the name of that file and the essential I node is done at the openeing of the file.\\
+- it opens up that file, it looks up is there a file of tht name in that directoery which is part of that subdirectory and so on
+- then opnce it finds the inode on the disck it knows which file it is and the i node is now the essential information it needs to keep 
+for that file
+- so you open thata file, you dont close it, but another process deletes that file by its file name. 
+- what happens on linux then is you can keep on using the file you opened. The delete is delayed on disk till you close the file.
+- And its even more important if you open up a file by its name, you keep the FD open and someone deletes the file and writes back another file
+you keep on seeing your version you opened at the momnet you opened that file. So that means that somewhere in the kernel there is state attached to "I open up a file and someone 
+is using that file and only once they are done I can actually physically delete the file". SO who talks about state, talks about memory that needs to be maintained somewhere 
+in order such that that info is kept consistent over the whole run of that system. so what happens in most systems for example is in it that very frist process, process #1, that starts
+that tree of processes, opens for example, the file where there is the C library (malloc,calloc, etc). Opens it adn doesn'tclose tha file until the end. So you can now switch out that C library with another versioiun \. \
+that process keeps on running on its own version and finds everthings in place during the whole run of that program. Thats great, and you need trhat for certain applications but that means maintaining STATE.
+So weve discussed about FUSE. a file system in user space, fuse is of course on of these file systems that can maintain that STATE but think of questions lie
+- what happens if someone uises FUSE or any other protocol to open up a file over the network
+- they open the file over the network, dont close it. the promise is they keep on seeing the contents of the file like they were when they opened up the file nad 
+then some other network computer changes that file. There needs to be a layer that manages the different version of the same file. And simnply document yourself about what type of protocs
+could eb useful. what issues could come up, whAT YOU COULD think of. what issues could come up in situations that are not really forseen and forseaable liek the server crashes or the network goes out and
+when it comes back the state on the remote server has been flushed/reset. and now what should that system do? it was promised one thing and perhaps now that state is gone. Theres a couple
+of issues with that. PT2 is a discussion in english what happens to POSIX file systems with state attached to files once they are open and if you cant control everythings because you the OS on one computer but youre not the
+OS of the world. IF another PC on the netwrok decides to do something else, perhaps you cant keep your promises. 
+- theres a litt
+
+PT3. FUSE
+
+- given part of a program that does something with the terminal and for a weird reason it runs slow for its computatin
+part iF the IO is slow. Then it runs fast for its computation part If IO is fast. 
+
+- dpcument yourself on the web about this
+
+- given code in C that does something on a terminal, prints out info on a terminal and uses some higher level capabilities of these terminals (like clearing the screen or something)
+And if you dont use these functionalitites the right way, your computations goes slow because your IO is slow, which should never have any connection. IO should be doing IO and
+if IO is slow we need to wait for IO but computation should never wait for slow IO. in particalar in tat case youlss see that theres no visble IO on that terminal but there is IO
+going on while the computation is done. 
+
+Terminals and IO do have state and each time you are maniuplating state, it is complicated and costs time. and you should aboidn in CS "state" by all means. Thats why UDP is pop[ular because it has no state. TCP does
+Your going to propose a possibliliy of rewriting it so the issue wont be seen anymore. (maybe rewrite it so no state invloved). Its pretty obvious what needs to be done once youveunderstood the issue, the question is trivial. DONT OVERTHINK IT. its easy
+I dont expect youi to write C but i expect you to tell me what should be changed. add a variable that does this and that and before doing this do that, or something. 
+-Will need to look into first understadning whats the issue
+
+
+EXAM IS ON:
+- Its the chapter on memory, on file systems, and IO. 
+1st part memory:
+page faults
+2nd part:
+file systems, state in file systems, different versions of one file
+3rd part:
+IO
+
