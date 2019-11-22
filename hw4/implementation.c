@@ -232,8 +232,278 @@
          filesystem and try to watch it out of the filesystem.
 
 */
+#define GET_LENGTH(p) ((ll *)(p))->length
+#define GET_NEXT(p) ((ll *)(p))->next
+#define GET_PREV(p) ((ll *)(p))->prev
+
+#define SL sizeof(ll) // Size of LL
+#define BYTE sizeof(char) // 1 byte
+
+// struct for a LL to hold freed memory
+typedef struct ll {
+	size_t length;
+	void * next;
+	void * prev;
+} ll;
+
+// initialize LL to hold free memory
+ll * head = NULL;
+
+void __free_impl(void *ptr);
+
+// search the global LL for a large enough chunk of memory. If found, return that space and add 
+// leftover to the global LL if that leftover is large enough to hold the header.
+static void * searchLL(size_t size) {
+	ll * temp1 = head;
+
+	// check if head is NULL (LL is empty)
+	if (temp1 == NULL)
+	{
+		return NULL;
+	}
+	while (temp1 != NULL)
+	{
+		if ((GET_LENGTH(temp1) - SL) >= size) // temp1 is large enough to provide space requested
+		{
+			// If there isn't enough space to split up block of memory, just return it and be done.
+			if ((GET_LENGTH(temp1) - SL) - size < SL + 1) // there isn't space for header, don't create a new block
+			{
+				// remove temp1 from LL and return temp1 with potential slight excess
+				if (GET_NEXT(temp1) == NULL && GET_PREV(temp1) == NULL) // temp1 is only member of LL
+				{
+					head = NULL;
+					return temp1;
+				}
+				else if (GET_PREV(temp1) == NULL) //temp1 is head of LL in this case
+				{
+					head = GET_NEXT(temp1);
+					GET_PREV(head) = NULL;
+					return temp1;
+				}
+
+				else if (GET_NEXT(temp1) == NULL) //temp1 is at tail
+				{
+					GET_NEXT(GET_PREV(temp1)) = NULL;
+					return temp1;
+				}
+				else //temp1 is somewhere in middle of LL in this case
+				{
+					GET_NEXT(GET_PREV(temp1)) = GET_NEXT(temp1);
+					GET_PREV(GET_NEXT(temp1)) = GET_PREV(temp1);
+					return temp1;
+				}
+			}
+			// there is space for a header in excess chunk of memory. Create a new block, temp2, and add it to LL
+			// Then, remove temp1 from LL, resize temp1, return temp1
+			else
+			{
+				// create new chunk of leftover to be inserted back into LL, resize temp1
+				ll * temp2;
+				char * temp3;
+				temp3 = (char *)temp1 + SL + size + 1; //place pointer for temp2 at end of space that will be used from temp1
+				temp2 = (ll *)temp3;
+				GET_LENGTH(temp2) = GET_LENGTH(temp1) - SL - size; // make temp1's length = exactly whats requested
+				GET_LENGTH(temp1) = SL + size;
+				// Check if at tail or head
+				if (GET_NEXT(temp1) == NULL && GET_PREV(temp1) == NULL) // temp1 is the only value in LL (and head)
+				{
+					GET_NEXT(temp2) = NULL;
+					GET_PREV(temp2) = NULL;
+					head = temp2;
+				}
+				else if (GET_NEXT(temp1) == NULL) // temp1 is tail
+				{
+					GET_NEXT(temp2) = NULL;
+					GET_NEXT(GET_PREV(temp1)) = temp2;
+					GET_PREV(temp2) = GET_PREV(temp1);
+				}
+				else if (GET_PREV(temp1) == NULL) // temp1 is head
+				{
+					GET_PREV(temp2) = NULL;
+					GET_NEXT(temp2) = GET_NEXT(temp1);
+					GET_PREV(GET_NEXT(temp1)) = temp2;
+					head = temp2;
+
+				}
+				else // temp1 is somewhere in middle of LL
+				{
+					GET_NEXT(temp2) = GET_NEXT(temp1);
+					GET_PREV(temp2) = GET_PREV(temp1);
+					GET_NEXT(GET_PREV(temp1)) = temp2;
+					GET_PREV(GET_NEXT(temp1)) = temp2;
+				}
+				// Null out temp1's prev and next values
+				GET_NEXT(temp1) = NULL;
+				GET_PREV(temp1) = NULL;
+				return temp1;
+			}
+		}
+		temp1 = GET_NEXT(temp1);
+	}
+	// If reached here than no space large enough was found in the LL, return NULL
+	temp1 = NULL;
+	return temp1;
+}
+
+
+/* Push newly mmaped block or freed block to linked list and merge it if possible */
+static void push(ll * ptr)
+{
+	//    ptr -= SL;  // move ptr to proper position
+	ll * temp = head;
+	if (temp == NULL)
+	{
+		head = ptr;
+		return;
+	}
+	else
+	{
+		while (temp != NULL)
+		{
+			// find proper position in free memory LL to insert given ptr into
+			if (ptr < temp) //insert ptr to the left of temp (which has to be head) and reassign head to ptr
+			{
+				GET_NEXT(ptr) = temp;
+				GET_PREV(ptr) = NULL;
+				GET_PREV(temp) = ptr;
+				head = ptr;
+				return;
+			}
+			else // (ptr > temp)
+			{
+				if (GET_NEXT(temp) == NULL) // if at tail, insert ptr at the end of free memory LL
+				{
+					GET_NEXT(temp) = ptr;
+					GET_NEXT(ptr) = NULL;
+					GET_PREV(ptr) = temp;
+					return;
+				}
+				else // (temp->next != NULL)
+				{
+					if ((void *)ptr < GET_NEXT(temp)) // insert ptr inbetween temp and temp->next
+					{
+						GET_NEXT(ptr) = GET_NEXT(temp);
+						GET_PREV(ptr) = temp;
+						GET_NEXT(temp) = ptr;
+						GET_PREV(GET_NEXT(ptr)) = ptr;
+						return;
+					}
+				}
+			}
+
+			// (ptr > temp->next), traverse further down the free memory LL
+			temp = GET_NEXT(temp);
+		}
+	}
+}
+
+
+
+// After pushing to proper position, attempt to merge with surrounding nodes if possible
+static void merge(ll * ptr)
+{
+	if (ptr == NULL) // ptr is NULL
+	{
+		return;
+	}
+	else if (GET_PREV(ptr) == NULL && GET_NEXT(ptr) == NULL) // ptr is only value in LL
+	{
+		return;
+	}
+	else if (GET_PREV(ptr) == NULL) // at head of LL, just check if we can merge with right node
+	{
+		//check if one starts where the other ends and they are part of the same mmapping
+		if (((void *)ptr + (GET_LENGTH(ptr)) + BYTE) == GET_NEXT(ptr))
+		{
+			//merge current node with next node
+			GET_LENGTH(ptr) = (GET_LENGTH(ptr) + GET_LENGTH(GET_NEXT(ptr)));
+			GET_NEXT(ptr) = (GET_NEXT(GET_NEXT(ptr)));
+			return;
+		}
+	}
+	else if (GET_NEXT(ptr) == NULL) // at tail of LL, just check if ptr can merge with left node
+	{
+		if ((GET_PREV(ptr) + (GET_LENGTH(GET_PREV(ptr)) + BYTE)) == (void *)ptr)
+		{
+			//merge left node with current node
+			GET_LENGTH(GET_PREV(ptr)) = (GET_LENGTH(GET_PREV(ptr)) + GET_LENGTH(ptr));
+			GET_NEXT(GET_PREV(ptr)) = NULL;
+			ptr = GET_PREV(ptr);
+			return;
+		}
+	}
+
+	else // ptr is not at head or end of LL
+	{
+		// check if we can merge with both left and right node
+		if ((GET_PREV(ptr) + GET_LENGTH(GET_PREV(ptr) + BYTE)) == (void *)ptr && ((ptr + GET_LENGTH(ptr) + BYTE) == GET_NEXT(ptr)))
+		{
+			//merge with both left and right nodes
+			GET_LENGTH(GET_PREV(ptr)) = (GET_LENGTH(GET_PREV(ptr)) + GET_LENGTH(ptr) + GET_LENGTH(GET_NEXT(ptr)));
+			GET_NEXT(GET_PREV(ptr)) = GET_NEXT(GET_NEXT(ptr));
+			ptr = GET_PREV(ptr);
+			return;
+		}
+		// check if we can merge with left node
+		else if ((GET_PREV(ptr) + GET_LENGTH(GET_PREV(ptr)) + BYTE) == (void *)ptr)
+		{
+			//merge left node with current node
+			GET_LENGTH(GET_PREV(ptr)) = (GET_LENGTH(GET_PREV(ptr)) + GET_LENGTH(ptr));
+			GET_NEXT(GET_PREV(ptr)) = GET_NEXT(ptr);
+			ptr = GET_PREV(ptr);
+			return;
+
+		}
+		// check if we can merge with right node
+		else if (((void *)ptr + GET_LENGTH(ptr) + BYTE) == GET_NEXT(ptr))
+		{
+			//merge current node with next node
+			GET_LENGTH(ptr) = (GET_LENGTH(ptr) + GET_LENGTH(GET_NEXT(ptr)));
+			GET_NEXT(ptr) = (GET_NEXT(GET_NEXT(ptr)));
+			return;
+		}
+		else // can't merge with either left or right node
+		{
+			return;
+		}
+	}
+}
+/////////////////////// END MEMORY MANAGEMENT FUNCTIONS ////////////////////////////////////////
 
 /* Helper types and functions */
+
+// handle struct 
+struct handle {
+	uint32_t magicNum;
+	LL freeMem;
+	node rootDir;
+};
+
+
+static getHandle(void *fsptr, size_t size) {
+	handle myHandle;
+	size_t s;
+	LL * freeMem;
+	// check if size of filesystem is large enough
+	if (size < sizeof(struct handle)) return NULL;
+	myHandle = (handle)fsptr;
+	// if first time mounting, initialize values 
+	if (handle->magicNum != MAGICNUMBER)
+	{
+		s = size - sizeof(struct handle);
+		myHandle->magicNum = MAGICNUMBER;
+		myHandle->size = s;
+		myHandle->rootDir = fsptr + sizeof(handle)  //location of rootDirectory is immediately after the handle
+		freeMem = (ll *) (fsptr + 1000000)			//set freeMem ptr to point to a space far enough away from fsptr so that directory/file metadata doesn't segfault
+				
+	}
+}
+
+
+
+
+
+
 
 struct node 
 {
