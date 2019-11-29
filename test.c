@@ -328,9 +328,9 @@ static int addDirectory(hd * hd, char * path){
 	nd * parent;
 	char * dup;
 	char * dup1;
-	dup = strdup(path);
+	dup = strdup(path); // dup is to be manipulated 
 	dup1 = strdup(path);
-	dup1 = dirname(dup1);
+	dup1 = dirname(dup1); // dup1 is path
 	int hasParent = -1;
 
 
@@ -338,7 +338,7 @@ static int addDirectory(hd * hd, char * path){
 	for (int i = 0; i < MAXFNUM; i++)
 	{
 		//has parent
-		if (strcmp(rdr->fullpath,dup1) == 0)
+		if (strcmp(rdr->fullpath,dup1) == 0 && rdr->fileSize == -1)
 		{
 			hasParent = 0;
 			parent = rdr;
@@ -395,8 +395,8 @@ static int deleteDirectory(hd * hd, char * path)
 	// make sure there is dir and has no subs
 	for (int i = 0; i < MAXFNUM; i++)
 	{
-		// has parent
-		if (strcmp(root->fullpath,dup1) == 0)
+		// has parent and is a dir
+		if (strcmp(root->fullpath,dup1) == 0 && root->fileSize == -1)
 		{
 			hasParent = 0;
 			parent = root;
@@ -408,7 +408,7 @@ static int deleteDirectory(hd * hd, char * path)
 			return -1;
 		}
 		//found dir
-		if (strcmp(root->fullpath,dup) == 0)
+		if (strcmp(root->fullpath,dup) == 0 && root->fileSize == -1)
 		{
 			dirFound = 0;
 			found = root;
@@ -428,6 +428,81 @@ static int deleteDirectory(hd * hd, char * path)
 	}
 
 }
+
+// create a file in a path of given size
+static int addFile(hd * handle, char * path, size_t size, char * data)
+{
+	nd * currNode = handle->rootDir;
+	char * dup = strdup(path);
+	char * dup1 = strdup(path);
+	int hasParent = -1;
+
+	dup1 = dirname(dup1); // dup1 = parent 
+
+	for (int i = 0; i < MAXFNUM; i++)
+	{
+		// dup found
+		if (strcmp(currNode->fullpath,dup) == 0)
+		{
+			printf("FIle already exists, add failed");
+			return -1;
+		}
+		//check parent 
+		if (strcmp(currNode->fullpath,dup1) == 0 && currNode->fileSize == -1)
+		{
+			hasParent = 0;
+		}
+		currNode++;
+	}//end of dup and parent check for loop
+
+	//reset currNode
+	currNode = handle->rootDir;
+
+	// parent dir found
+	if (hasParent == 0)
+	{
+		for (int i = 0; i < MAXFNUM; i++)
+		{
+			if (currNode->isFree == 0)
+			{
+				currNode->isFree = -1;
+				currNode->subdirs = -1;
+				strcpy(currNode->fullpath,dup);
+				strcpy(currNode->name,basename(dup));
+				strcpy(currNode->path,dirname(dup));
+				currNode->fileSize = size;
+				void * temp = searchLL(size,handle);
+				currNode->offset = GETOFFSET(handle,temp);
+				memcpy(GETPTR(handle,currNode->offset),data,size); // setdata
+				return 0; // success!
+			}
+			currNode++;
+		}
+	}
+	printf("parent dir not found.\n");
+	return -1;
+}
+
+static int deleteFile(hd * handle, char * path)
+{
+	nd * curr = handle->rootDir;
+	char * dup = strdup(path);
+	for (int i = 0; i < MAXFNUM; i++)
+	{
+		// found file and is not dir
+		if (strcmp(curr->fullpath,dup) == 0 && curr->fileSize > -1)
+		{
+			// push its data back to free ll
+			push(GETPTR(handle,curr->offset),handle);
+			curr->isFree = 0;
+			return 0;
+		}
+		curr++;
+	}
+	printf("file not found, del failed\n");
+	return -1;
+}
+
 //for debug purpose
 static void printNodes(hd * hd)
 {
@@ -436,7 +511,15 @@ static void printNodes(hd * hd)
 	{
 		if (root->isFree == -1)
 			{
-				printf("%s %s %s %d %d %d\n",root->fullpath,root->path,root->name,root->fileSize,root->offset,root->subdirs,root->isFree);
+				printf("Current Index    : %d\n",i);
+				printf("Fullpath:%s ",root->fullpath);
+				printf("Path:%s ",root->path);
+				printf("filename:%s ",root->name);
+				printf("isFree:%d ",root->isFree);
+				printf("fileSize:%d ",root->fileSize);
+				printf("subdirs:%d ",root->subdirs);
+				printf("offset:%d\n",root->offset);
+				if (root->offset != -1) printf("data:%s\n",GETPTR(hd,root->offset));
 			}		
 		root++;
 	}
@@ -449,15 +532,16 @@ int main(int argc, char **argv)
 	
 	initHandle(ptr,1000000);
 
+	 char data[5] = "asdf";
 	char f[100] = "/dir1";
-	 addDirectory(ptr,f);
+	addDirectory(ptr,f);
 
 	 strcpy(f,"/dir1/dir2");
 
 	 addDirectory(ptr,f);
 
-	 strcpy(f,"/dir1/dir2/dir3");
 
+	 strcpy(f,"/dir1/dir2/dir3");
 	 addDirectory(ptr,f);
 
 	 printNodes(ptr);
@@ -465,9 +549,19 @@ int main(int argc, char **argv)
 	 strcpy(f,"/dir1/dir2");
 	 deleteDirectory(ptr,f);
 
+	 strcpy(f,"/dir1/dir2/dir3");
+	 deleteDirectory(ptr,f);
 	 printNodes(ptr);
 
-
+	 strcpy(f,"/dir1/dir2/file1");
+	 
+	 addFile(ptr,f,0,'a');
+	 strcpy(f,"/dir1/file3");
+	 addFile(ptr,f,sizeof(f),f);
+	 printNodes(ptr);
+	 addFile(ptr,f,sizeof(data),data);
+	 deleteFile(ptr,f);
+	 printNodes(ptr);
 
 free(ptr);
 	
