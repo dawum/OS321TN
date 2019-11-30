@@ -482,7 +482,7 @@ static int initHandle(void * fsptr, size_t size)
 			rootNode->isFree = -1;
 			rootNode->offset = -1;
 			rootNode->fullpath[0] = '/';
-			rootNode->path[0] = '/';
+			rootNode->path[0] = NULL;
 			rootNode->name[0] = '/';
 			return 0;
 		}
@@ -511,8 +511,8 @@ static int addDirectory(hd * hd, char * path){
 		}
 		if (strcmp(rdr->fullpath,dup)==0)
 		{
-			printf("dup dir found, cannot add\n");
-			return -1;
+			//printf("dup dir found, cannot add\n");
+			return EEXIST;
 		}
 		else
 		{
@@ -545,8 +545,8 @@ static int addDirectory(hd * hd, char * path){
 		}
 	} 
 	}
-	printf("No more dirs can be added\n");
-	return -1;
+	//printf("No more dirs can be added\n");
+	return EFAULT;
 }
 static int deleteDirectory(hd * hd, char * path)
 {
@@ -570,8 +570,8 @@ static int deleteDirectory(hd * hd, char * path)
 		//sub check
 		if (strcmp(root->path,dup) == 0)
 		{
-			printf("has sub dir, cannnot delete dir\n");
-			return -1;
+			//printf("has sub dir, cannnot delete dir\n");
+			return ENOTEMPTY;
 		}
 		//found dir
 		if (strcmp(root->fullpath,dup) == 0 && root->fileSize == -1)
@@ -590,7 +590,7 @@ static int deleteDirectory(hd * hd, char * path)
 	}
 	else 
 	{
-		return -1;
+		return ENOENT;
 	}
 
 }
@@ -601,7 +601,9 @@ static int addFile(hd * handle, char * path, size_t size, char * data)
 	nd * currNode = handle->rootDir;
 	char * dup = strdup(path);
 	char * dup1 = strdup(path);
+    //char * error;
 	int hasParent = -1;
+
 
 	dup1 = dirname(dup1); // dup1 = parent 
 
@@ -610,8 +612,9 @@ static int addFile(hd * handle, char * path, size_t size, char * data)
 		// dup found
 		if (strcmp(currNode->fullpath,dup) == 0)
 		{
-			printf("FIle already exists, add failed");
-			return -1;
+			//printf("FIle already exists, add failed");
+            //error = EEXIST;
+			return EEXIST;
 		}
 		//check parent 
 		if (strcmp(currNode->fullpath,dup1) == 0 && currNode->fileSize == -1)
@@ -629,6 +632,7 @@ static int addFile(hd * handle, char * path, size_t size, char * data)
 	{
 		for (int i = 0; i < MAXFNUM; i++)
 		{
+            // find an emptr nd and add file to fs 
 			if (currNode->isFree == 0)
 			{
 				currNode->isFree = -1;
@@ -645,8 +649,8 @@ static int addFile(hd * handle, char * path, size_t size, char * data)
 			currNode++;
 		}
 	}
-	printf("parent dir not found.\n");
-	return -1;
+	//printf("parent dir not found.\n");
+	return ENOENT;
 }
 
 static int deleteFile(hd * handle, char * path)
@@ -665,8 +669,8 @@ static int deleteFile(hd * handle, char * path)
 		}
 		curr++;
 	}
-	printf("file not found, del failed\n");
-	return -1;
+	//printf("file not found, del failed\n");
+	return ENOENT;
 }
 
 //for debug purpose
@@ -753,12 +757,10 @@ int __myfs_getattr_implem(void *fsptr, size_t fssize, int *errnoptr,
 
 /* Implements an emulation of the readdir system call on the filesystem
    of size fssize pointed to by fsptr.
-
    If path can be followed and describes a directory that exists and
    is accessable, the names of the subdirectories and files
    contained in that directory are output into *namesptr. The . and ..
    directories must not be included in that listing.
-
    If it needs to output file and subdirectory names, the function
    starts by allocating (with calloc) an array of pointers to
    characters of the right size (n entries for n names). Sets
@@ -773,14 +775,12 @@ int __myfs_getattr_implem(void *fsptr, size_t fssize, int *errnoptr,
    The calling function
    will call free on each of the entries of *namesptr and
    on *namesptr.
-
    The function returns the number of names that have been
    put into namesptr.
    
    If no name needs to be reported because the directory does
    not contain any file or subdirectory besides . and .., 0 is
    returned and no allocation takes place.
-
    On failure, -1 is returned and the *errnoptr is set to
    the appropriate error code.
    The error codes are documented in man 2 readdir.
@@ -791,9 +791,7 @@ int __myfs_getattr_implem(void *fsptr, size_t fssize, int *errnoptr,
 int __myfs_readdir_implem(void *fsptr, size_t fssize, int *errnoptr,
 
 	const char *path, char ***namesptr) {
-	
-	return -1;
-	
+
 	initHandle(fsptr,fssize);
 	hd * handle = fsptr;
 	nd * rdr = handle->rootDir;
@@ -846,36 +844,56 @@ int __myfs_readdir_implem(void *fsptr, size_t fssize, int *errnoptr,
 		}
 	rdr++;
 	}
-	
+    //if no names found, return 0
+    if (nameCount == 0)
+    {
+        return 0;
+    }
+	//printf("nameCount: %d", nameCount);
+    //printf("name: %s", temp[0]);
+    
 	*namesptr = calloc(nameCount, 1);
-	//namesptr = names;
+
 	for(int i = 0; i < nameCount; i++)
 	{
 		*namesptr[i] = temp[nameCount];
  	}
-
-
+     
 	return nameCount;
 	
 }
 
-
-
-
 /* Implements an emulation of the mknod system call for regular files
    on the filesystem of size fssize pointed to by fsptr.
+
    This function is called only for the creation of regular files.
+
    If a file gets created, it is of size zero and has default
    ownership and mode bits.
+
    The call creates the file indicated by path.
+
    On success, 0 is returned.
+
    On failure, -1 is returned and *errnoptr is set appropriately.
    The error codes are documented in man 2 mknod.
 */
 int __myfs_mknod_implem(void *fsptr, size_t fssize, int *errnoptr,
 	const char *path) {
-	/* STUB */
-	return -1;
+
+	initHandle(fsptr,fssize);
+	hd * handle = fsptr;
+    int error = 0;
+    //call addFile to create file if possible. returns error if any
+    error = addFile(handle, (char *)path, 0, 0);
+
+    if (error != 0)
+    {
+        *errnoptr = error;
+        return -1; //fail
+    }
+
+    return 0; //success
 }
 
 /* Implements an emulation of the unlink system call for regular files
@@ -887,8 +905,21 @@ int __myfs_mknod_implem(void *fsptr, size_t fssize, int *errnoptr,
 */
 int __myfs_unlink_implem(void *fsptr, size_t fssize, int *errnoptr,
 	const char *path) {
-	/* STUB */
-	return -1;
+
+	initHandle(fsptr,fssize);
+	hd * handle = fsptr;
+    int error = 0;
+
+    error = deleteFile(handle, (char *)path);
+
+    if (error != 0)
+    {
+        *errnoptr = error;
+        return -1; //fail
+    }
+
+    return 0; //success
+
 }
 
 /* Implements an emulation of the rmdir system call on the filesystem
@@ -902,8 +933,21 @@ int __myfs_unlink_implem(void *fsptr, size_t fssize, int *errnoptr,
 */
 int __myfs_rmdir_implem(void *fsptr, size_t fssize, int *errnoptr,
 	const char *path) {
-	/* STUB */
-	return -1;
+
+	initHandle(fsptr,fssize);
+	hd * handle = fsptr;
+    int error = 0;
+
+    error = deleteDirectory(handle, (char *)path);
+
+    if (error != 0)
+    {
+        *errnoptr = error;
+        return -1; //fail
+    }
+
+	return 0; //success
+
 }
 
 /* Implements an emulation of the mkdir system call on the filesystem
@@ -915,8 +959,20 @@ int __myfs_rmdir_implem(void *fsptr, size_t fssize, int *errnoptr,
 */
 int __myfs_mkdir_implem(void *fsptr, size_t fssize, int *errnoptr,
 	const char *path) {
-	/* STUB */
-	return -1;
+
+	initHandle(fsptr,fssize);
+	hd * handle = fsptr;
+    int error = 0;
+
+    error = addDirectory(handle, (char *)path);
+
+    if (error != 0)
+    {
+        *errnoptr = error;
+        return -1; //fail
+    }
+
+	return 0; //success
 }
 
 /* Implements an emulation of the rename system call on the filesystem
