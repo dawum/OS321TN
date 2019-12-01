@@ -788,10 +788,13 @@ int __myfs_getattr_implem(void *fsptr, size_t fssize, int *errnoptr,
    indicated by returning -1 and setting *errnoptr to EINVAL.
 */
 
+
 int __myfs_readdir_implem(void *fsptr, size_t fssize, int *errnoptr,
 
 	const char *path, char ***namesptr) {
 
+    
+    
 	initHandle(fsptr,fssize);
 	hd * handle = fsptr;
 	nd * rdr = handle->rootDir;
@@ -844,24 +847,35 @@ int __myfs_readdir_implem(void *fsptr, size_t fssize, int *errnoptr,
 		}
 	rdr++;
 	}
+
     //if no names found, return 0
     if (nameCount == 0)
     {
         return 0;
     }
+
 	//printf("nameCount: %d", nameCount);
     //printf("name: %s", temp[0]);
     
-	*namesptr = calloc(nameCount, 1);
+	*namesptr = calloc(nameCount, (size_t)25);
+    if (!namesptr) 
+    {
+        *errnoptr = EFAULT;
+        return -1;
+    }
 
+    char **curr = *namesptr;
+    
 	for(int i = 0; i < nameCount; i++)
 	{
-		*namesptr[i] = temp[nameCount];
+        *curr = realloc(*curr, 25);
+		strcpy(*curr,temp[i]);
+        *curr++;
  	}
-     
+
 	return nameCount;
-	
 }
+
 
 /* Implements an emulation of the mknod system call for regular files
    on the filesystem of size fssize pointed to by fsptr.
@@ -1097,3 +1111,4 @@ int __myfs_statfs_implem(void *fsptr, size_t fssize, int *errnoptr,
 	/* STUB */
 	return -1;
 }
+
